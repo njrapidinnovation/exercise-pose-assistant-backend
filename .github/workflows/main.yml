@@ -1,0 +1,59 @@
+name: Deploy to Server
+
+on:
+  push:
+    branches:
+      - release
+      - dev
+      - uat
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Install SSH and SSHPass
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y sshpass openssh-client
+
+    - name: Set up SSH key and environment variables for dev branch
+      if: github.ref == 'refs/heads/dev'
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.BASTION_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        echo "BASTION_HOST=${{ secrets.BASTION_HOST }}" >> $GITHUB_ENV
+        echo "TARGET_HOST=${{ secrets.TARGET_HOST_DEV }}" >> $GITHUB_ENV
+
+    - name: Extract repo name
+      id: extract-repo-name
+      run: |
+        REPO_NAME=$(basename ${{ github.repository }})
+        echo "REPO_NAME=$REPO_NAME" >> $GITHUB_ENV
+
+    - name: Copy deploy_script.sh to Bastion Host
+      env:
+        BASTION_USER: ec2-user
+      run: |
+        ssh-keyscan -H ${{ env.BASTION_HOST }} >> ~/.ssh/known_hosts
+        scp -o StrictHostKeyChecking=no ./deploy_script.sh $BASTION_USER@${{ env.BASTION_HOST }}:/home/$BASTION_USER/
+
+    - name: Execute deploy_script.sh from Bastion Host to Target EC2
+      env:
+        BASTION_USER: ec2-user
+        TARGET_USER: ec2-user
+        REPO_SLUG: ${{ env.REPO_NAME }}
+        COMMIT_HASH: ${{ github.sha }}
+        BRANCH: ${{ github.ref_name }}
+        BASTION_HOST: ${{ secrets.BASTION_HOST }}
+        TARGET_HOST: ${{ env.TARGET_HOST }}
+      run: |
+        # Copy deploy_script.sh from the bastion host to the target EC2 instance
+        ssh -o StrictHostKeyChecking=no $BASTION_USER@$BASTION_HOST "scp -o StrictHostKeyChecking=no /home/$BASTION_USER/deploy_script.sh $TARGET_USER@$TARGET_HOST:/home/$TARGET_USER/"
+
+        # Execute deploy_script.sh on the target EC2 instance
+        ssh -o StrictHostKeyChecking=no $BASTION_USER@$BASTION_HOST "ssh -o StrictHostKeyChecking=no $TARGET_USER@$TARGET_HOST 'bash /home/$TARGET_USER/deploy_script.sh $REPO_SLUG ${COMMIT_HASH:0:7} $BRANCH'"
