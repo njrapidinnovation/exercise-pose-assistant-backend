@@ -1,0 +1,11 @@
+# general python ignore files
+*.py[cod]
+*$py.class
+__pycache__
+.DS_Store
+
+# virtual envs
+venv
+
+# env file
+.env

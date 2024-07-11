@@ -1,0 +1,130 @@
+import cv2
+import mediapipe as mp
+import numpy as np
+from aiortc import MediaStreamTrack
+from av import VideoFrame
+
+mp_hands = mp.solutions.hands
+mp_pose = mp.solutions.pose
+pose = mp_pose.Pose()
+hands = mp_hands.Hands(
+    static_image_mode=False,
+    max_num_hands=2,
+    min_detection_confidence=0.7,
+    min_tracking_confidence=0.5,
+)
+mp_drawing = mp.solutions.drawing_utils
+
+
+def rotate_point(point, angle, center):
+    angle_rad = np.deg2rad(angle)
+    ox, oy = center
+    px, py = point
+
+    qx = ox + np.cos(angle_rad) * (px - ox) - np.sin(angle_rad) * (py - oy)
+    qy = oy + np.sin(angle_rad) * (px - ox) + np.cos(angle_rad) * (py - oy)
+    return qx, qy
+
+
+def is_point_in_ellipse(point, center, axes):
+    px, py = point
+    cx, cy = center
+    a, b = axes
+
+    return ((px - cx) ** 2 / a**2 + (py - cy) ** 2 / b**2) <= 1
+
+
+def process_frame(frame):
+    img = frame.to_ndarray(format="bgr24")
+
+    image = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    image.flags.writeable = False
+    results = pose.process(image)
+    results_hand = hands.process(image)
+    image.flags.writeable = True
+    image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+
+    if results.pose_landmarks:
+        landmarks = results.pose_landmarks.landmark
+        left_hip = landmarks[mp_pose.PoseLandmark.LEFT_HIP.value]
+        right_hip = landmarks[mp_pose.PoseLandmark.RIGHT_HIP.value]
+        left_shoulder = landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value]
+        right_shoulder = landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value]
+        image_height, image_width, _ = image.shape
+        left_hip_coords = (
+            int(left_hip.x * image_width),
+            int(left_hip.y * image_height),
+        )
+        right_hip_coords = (
+            int(right_hip.x * image_width),
+            int(right_hip.y * image_height),
+        )
+        left_shoulder_coords = (
+            int(left_shoulder.x * image_width),
+            int(left_shoulder.y * image_height),
+        )
+        right_shoulder_coords = (
+            int(right_shoulder.x * image_width),
+            int(right_shoulder.y * image_height),
+        )
+        center_left = (left_hip_coords[0] - 10, left_hip_coords[1] - 50)
+        center_right = (right_hip_coords[0] + 10, right_hip_coords[1] - 50)
+        area = (30, 20)
+        rotate_left = 120
+        rotate_right = 60
+        overlay_left = image.copy()
+        overlay_right = image.copy()
+        cv2.ellipse(
+            overlay_left, center_left, area, rotate_left, 0, 360, (0, 255, 0), -1
+        )
+        cv2.ellipse(
+            overlay_right, center_right, area, rotate_right, 0, 360, (0, 255, 0), -1
+        )
+
+        if results_hand.multi_hand_landmarks:
+            for hand_landmarks in results_hand.multi_hand_landmarks:
+                hand_points = [
+                    (int(lm.x * image.shape[1]), int(lm.y * image.shape[0]))
+                    for lm in hand_landmarks.landmark
+                ]
+                rotated_points_left = [
+                    rotate_point(pt, -rotate_left, center_left) for pt in hand_points
+                ]
+                rotated_points_right = [
+                    rotate_point(pt, -rotate_right, center_right) for pt in hand_points
+                ]
+
+                for pt_left, pt_right in zip(rotated_points_left, rotated_points_right):
+                    if is_point_in_ellipse(pt_right, center_right, area):
+                        cv2.addWeighted(overlay_right, 0.5, image, 0.5, 0, image)
+                        cv2.putText(
+                            image,
+                            "Hand inside right ellipse",
+                            (10, 60),
+                            cv2.FONT_HERSHEY_SIMPLEX,
+                            1,
+                            (255, 0, 255),
+                            2,
+                        )
+                        break
+                    elif is_point_in_ellipse(pt_left, center_left, area):
+                        cv2.addWeighted(overlay_left, 0.5, image, 0.5, 0, image)
+                        cv2.putText(
+                            image,
+                            "Hand inside left ellipse",
+                            (10, 30),
+                            cv2.FONT_HERSHEY_SIMPLEX,
+                            1,
+                            (255, 0, 255),
+                            2,
+                        )
+                        break
+                mp_drawing.draw_landmarks(
+                    image, hand_landmarks, mp_hands.HAND_CONNECTIONS
+                )
+
+    # Rebuild a VideoFrame, preserving timing information
+    new_frame = VideoFrame.from_ndarray(image, format="bgr24")
+    new_frame.pts = frame.pts
+    new_frame.time_base = frame.time_base
+    return new_frame
