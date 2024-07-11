@@ -27,7 +27,7 @@ jobs:
         echo "${{ secrets.BASTION_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
         echo "BASTION_HOST=${{ secrets.BASTION_HOST }}" >> $GITHUB_ENV
-        echo "TARGET_HOST=${{ secrets.TARGET_HOST_DEV }}" >> $GITHUB_ENV
+        echo "TARGET_HOST=${{ secrets.TARGET_HOST }}" >> $GITHUB_ENV
 
     - name: Extract repo name
       id: extract-repo-name
