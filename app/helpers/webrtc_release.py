@@ -15,6 +15,11 @@ hands = mp_hands.Hands(
 )
 mp_drawing = mp.solutions.drawing_utils
 
+class PoseEllipses:
+    def __init__(self):
+        self.initialized=False
+        self.center_left=None
+        self.center_right=None
 
 def rotate_point(point, angle, center):
     angle_rad = np.deg2rad(angle)
@@ -35,6 +40,7 @@ def is_point_in_ellipse(point, center, axes):
 
 
 def process_frame(frame):
+    pose_ellipses=PoseEllipses()
     img = frame.to_ndarray(format="bgr24")
 
     image = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -51,35 +57,21 @@ def process_frame(frame):
         left_shoulder = landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value]
         right_shoulder = landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value]
         image_height, image_width, _ = image.shape
-        left_hip_coords = (
-            int(left_hip.x * image_width),
-            int(left_hip.y * image_height),
-        )
-        right_hip_coords = (
-            int(right_hip.x * image_width),
-            int(right_hip.y * image_height),
-        )
-        left_shoulder_coords = (
-            int(left_shoulder.x * image_width),
-            int(left_shoulder.y * image_height),
-        )
-        right_shoulder_coords = (
-            int(right_shoulder.x * image_width),
-            int(right_shoulder.y * image_height),
-        )
-        center_left = (left_hip_coords[0] - 10, left_hip_coords[1] - 50)
-        center_right = (right_hip_coords[0] + 10, right_hip_coords[1] - 50)
+        if not pose_ellipses.initialized:
+            initial_left_hip_coords = (int(left_hip.x * image_width), int(left_hip.y * image_height))
+            initial_right_hip_coords = (int(right_hip.x * image_width), int(right_hip.y * image_height))
+            pose_ellipses.center_left = (initial_left_hip_coords[0] - 8, initial_left_hip_coords[1] - 45)
+            pose_ellipses.center_right = (initial_right_hip_coords[0] + 8, initial_right_hip_coords[1] - 45)
+            pose_ellipses.initialized=True
+            
+        center_left=pose_ellipses.center_left
+        center_right=pose_ellipses.center_right
         area = (30, 20)
         rotate_left = 120
         rotate_right = 60
-        overlay_left = image.copy()
-        overlay_right = image.copy()
-        cv2.ellipse(
-            overlay_left, center_left, area, rotate_left, 0, 360, (0, 255, 0), -1
-        )
-        cv2.ellipse(
-            overlay_right, center_right, area, rotate_right, 0, 360, (0, 255, 0), -1
-        )
+            
+        cv2.ellipse(image, center_left, area, rotate_left, 0, 360, (255, 0, 0), -1)
+        cv2.ellipse(image, center_right, area, rotate_right, 0, 360, (255, 0, 0), -1)
 
         if results_hand.multi_hand_landmarks:
             for hand_landmarks in results_hand.multi_hand_landmarks:
@@ -96,7 +88,7 @@ def process_frame(frame):
 
                 for pt_left, pt_right in zip(rotated_points_left, rotated_points_right):
                     if is_point_in_ellipse(pt_right, center_right, area):
-                        cv2.addWeighted(overlay_right, 0.5, image, 0.5, 0, image)
+                        cv2.ellipse(image, center_right, area, rotate_right, 0, 360, (0, 255, 0), -1)
                         cv2.putText(
                             image,
                             "Hand inside right ellipse",
@@ -108,7 +100,7 @@ def process_frame(frame):
                         )
                         break
                     elif is_point_in_ellipse(pt_left, center_left, area):
-                        cv2.addWeighted(overlay_left, 0.5, image, 0.5, 0, image)
+                        cv2.ellipse(image, center_left, area, rotate_left, 0, 360, (0, 255, 0), -1)
                         cv2.putText(
                             image,
                             "Hand inside left ellipse",
