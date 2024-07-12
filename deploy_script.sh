@@ -53,7 +53,7 @@ run_new_container() {
   echo "##############################"
   echo "Running new Docker container"
   echo "##############################"
-  docker run -d -p 5000:5000 --name "$CONTAINER_NAME" --network my-network --env-file /home/ec2-user/env/.env "$IMAGE_NAME"
+  docker run -d --name "$CONTAINER_NAME" --network host --env-file /home/ec2-user/env/.env "$IMAGE_NAME"
 }
 
 # Function to remove unused images
