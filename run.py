@@ -6,7 +6,13 @@ import uuid
 
 import cv2
 from aiohttp import web
-from aiortc import MediaStreamTrack, RTCPeerConnection, RTCSessionDescription
+from aiortc import (
+    MediaStreamTrack,
+    RTCConfiguration,
+    RTCIceServer,
+    RTCPeerConnection,
+    RTCSessionDescription,
+)
 from aiortc.contrib.media import MediaBlackhole, MediaPlayer, MediaRecorder, MediaRelay
 from av import VideoFrame
 
@@ -22,7 +28,7 @@ relay = MediaRelay()
 
 class VideoTransformTrack(MediaStreamTrack):
     """
-    A video stream track that transforms frames from an another track.
+    A video stream track that transforms frames from another track.
     """
 
     kind = "video"
@@ -106,7 +112,15 @@ async def offer(request):
     params = await request.json()
     offer = RTCSessionDescription(sdp=params["sdp"], type=params["type"])
 
-    pc = RTCPeerConnection()
+    # Configure ICE servers
+    ice_servers = [
+        RTCIceServer(urls=["stun:stun.l.google.com:19302"]),
+        # Add TURN server configuration if available
+        # RTCIceServer(urls=["turn:turn.example.com:3478"], username="user", credential="pass")
+    ]
+    config = RTCConfiguration(iceServers=ice_servers)
+
+    pc = RTCPeerConnection(configuration=config)
     pc_id = "PeerConnection(%s)" % uuid.uuid4()
     pcs.add(pc)
 

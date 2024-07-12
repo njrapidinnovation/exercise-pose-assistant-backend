@@ -22,10 +22,10 @@ def get_config():
     parser.add_argument("--cert-file", help="SSL certificate file (for HTTPS)")
     parser.add_argument("--key-file", help="SSL key file (for HTTPS)")
     parser.add_argument(
-        "--host", default=HOST, help="Host for HTTP server (default: 0.0.0.0)"
+        "--host", default=HOST, help=f"Host for HTTP server (default: {HOST})"
     )
     parser.add_argument(
-        "--port", type=int, default=PORT, help="Port for HTTP server (default: 5000)"
+        "--port", type=int, default=PORT, help=f"Port for HTTP server (default: {PORT})"
     )
     parser.add_argument("--record-to", help="Write received media to a file.")
     parser.add_argument("--verbose", "-v", action="count")
