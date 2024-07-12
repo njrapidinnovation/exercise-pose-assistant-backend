@@ -6,7 +6,13 @@ import uuid
 
 import cv2
 from aiohttp import web
-from aiortc import MediaStreamTrack, RTCPeerConnection, RTCSessionDescription
+from aiortc import (
+    MediaStreamTrack,
+    RTCConfiguration,
+    RTCIceServer,
+    RTCPeerConnection,
+    RTCSessionDescription,
+)
 from aiortc.contrib.media import MediaBlackhole, MediaPlayer, MediaRecorder, MediaRelay
 from av import VideoFrame
 
@@ -21,30 +27,21 @@ relay = MediaRelay()
 
 
 class VideoTransformTrack(MediaStreamTrack):
-    """
-    A video stream track that transforms frames from an another track.
-    """
-
     kind = "video"
 
     def __init__(self, track, transform):
-        super().__init__()  # don't forget this!
+        super().__init__()
         self.track = track
         self.transform = transform
 
     async def recv(self):
         frame = await self.track.recv()
-
         if self.transform == "cartoon":
             img = frame.to_ndarray(format="bgr24")
-
-            # prepare color
             img_color = cv2.pyrDown(cv2.pyrDown(img))
             for _ in range(6):
                 img_color = cv2.bilateralFilter(img_color, 9, 9, 7)
             img_color = cv2.pyrUp(cv2.pyrUp(img_color))
-
-            # prepare edges
             img_edges = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
             img_edges = cv2.adaptiveThreshold(
                 cv2.medianBlur(img_edges, 7),
@@ -55,33 +52,23 @@ class VideoTransformTrack(MediaStreamTrack):
                 2,
             )
             img_edges = cv2.cvtColor(img_edges, cv2.COLOR_GRAY2RGB)
-
-            # combine color and edges
             img = cv2.bitwise_and(img_color, img_edges)
-
-            # rebuild a VideoFrame, preserving timing information
             new_frame = VideoFrame.from_ndarray(img, format="bgr24")
             new_frame.pts = frame.pts
             new_frame.time_base = frame.time_base
             return new_frame
         elif self.transform == "edges":
-            # perform edge detection
             img = frame.to_ndarray(format="bgr24")
             img = cv2.cvtColor(cv2.Canny(img, 100, 200), cv2.COLOR_GRAY2BGR)
-
-            # rebuild a VideoFrame, preserving timing information
             new_frame = VideoFrame.from_ndarray(img, format="bgr24")
             new_frame.pts = frame.pts
             new_frame.time_base = frame.time_base
             return new_frame
         elif self.transform == "rotate":
-            # rotate image
             img = frame.to_ndarray(format="bgr24")
             rows, cols, _ = img.shape
             M = cv2.getRotationMatrix2D((cols / 2, rows / 2), frame.time * 45, 1)
             img = cv2.warpAffine(img, M, (cols, rows))
-
-            # rebuild a VideoFrame, preserving timing information
             new_frame = VideoFrame.from_ndarray(img, format="bgr24")
             new_frame.pts = frame.pts
             new_frame.time_base = frame.time_base
@@ -106,7 +93,15 @@ async def offer(request):
     params = await request.json()
     offer = RTCSessionDescription(sdp=params["sdp"], type=params["type"])
 
-    pc = RTCPeerConnection()
+    # Configure ICE servers
+    ice_servers = [
+        RTCIceServer(urls=["stun:stun.l.google.com:19302"]),
+        # Add TURN server configuration if available
+        # RTCIceServer(urls=["turn:turn.example.com:3478"], username="user", credential="pass")
+    ]
+    config = RTCConfiguration(iceServers=ice_servers)
+
+    pc = RTCPeerConnection(configuration=config)
     pc_id = "PeerConnection(%s)" % uuid.uuid4()
     pcs.add(pc)
 
@@ -128,6 +123,22 @@ async def offer(request):
         def on_message(message):
             if isinstance(message, str) and message.startswith("ping"):
                 channel.send("pong" + message[4:])
+
+    @pc.on("icegatheringstatechange")
+    def on_icegatheringstatechange():
+        log_info("ICE gathering state is %s", pc.iceGatheringState)
+
+    @pc.on("icecandidate")
+    def on_icecandidate(candidate):
+        log_info("ICE candidate is %s", candidate)
+
+    @pc.on("icegatheringstatechange")
+    def on_icegatheringstatechange():
+        log_info("ICE gathering state is %s", pc.iceGatheringState)
+
+    @pc.on("icecandidate")
+    def on_icecandidate(candidate):
+        log_info("ICE candidate is %s", candidate)
 
     @pc.on("connectionstatechange")
     async def on_connectionstatechange():
