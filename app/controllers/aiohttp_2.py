@@ -16,8 +16,54 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 stop_event = asyncio.Event()  # Event to signal stop
 
 
-async def video_feed_new(request):
+# async def video_feed_new(request):
 
+#     stop_event.clear()  # Clear the stop event when starting the video feed
+
+#     async def video_stream():
+#         cap = cv2.VideoCapture(0)
+#         if not cap.isOpened():
+#             print("Error: Could not open video capture.")
+#             return
+
+#         try:
+#             while cap.isOpened():
+#                 if stop_event.is_set():
+#                     break
+
+#                 ret, frame = cap.read()
+#                 if not ret:
+#                     break
+
+#                 # Process the frame
+#                 av_frame = VideoFrame.from_ndarray(frame, format="bgr24")
+#                 processed_frame = process_frame(av_frame)
+#                 image = processed_frame.to_ndarray(format="bgr24")
+
+#                 # Encode image to JPEG
+#                 ret, jpeg = cv2.imencode(".jpg", image)
+#                 if not ret:
+#                     continue
+
+#                 # Convert JPEG to bytes
+#                 frame_bytes = jpeg.tobytes()
+
+#                 # Yield frame bytes as multipart content
+#                 yield (
+#                     b"--frame\r\n"
+#                     b"Content-Type: image/jpeg\r\n\r\n" + frame_bytes + b"\r\n"
+#                 )
+#                 await asyncio.sleep(0.01)  # Allow other tasks to run
+#         finally:
+#             cap.release()
+
+#     return web.Response(
+#         headers={"Content-Type": "multipart/x-mixed-replace; boundary=frame"},
+#         body=video_stream(),
+#     )
+
+
+async def video_feed_new(request):
     stop_event.clear()  # Clear the stop event when starting the video feed
 
     async def video_stream():
@@ -57,10 +103,13 @@ async def video_feed_new(request):
         finally:
             cap.release()
 
-    return web.Response(
-        headers={"Content-Type": "multipart/x-mixed-replace; boundary=frame"},
-        body=video_stream(),
+    response = web.StreamResponse(
+        headers={"Content-Type": "multipart/x-mixed-replace; boundary=frame"}
     )
+    await response.prepare(request)
+    async for frame in video_stream():
+        await response.write(frame)
+    return response
 
 
 async def stop_new(request):
