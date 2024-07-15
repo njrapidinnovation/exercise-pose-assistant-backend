@@ -25,8 +25,6 @@ logger = logging.getLogger("pc")
 pcs = set()
 relay = MediaRelay()
 
-args, ssl_context = get_config()
-
 
 class VideoTransformTrack(MediaStreamTrack):
     kind = "video"
@@ -191,3 +189,20 @@ async def on_shutdown(app):
     coros = [pc.close() for pc in pcs]
     await asyncio.gather(*coros)
     pcs.clear()
+
+
+def create_aiohttp_app():
+    app = web.Application()
+    app.on_shutdown.append(on_shutdown)
+    app.router.add_get("/", index)
+    app.router.add_get("/client.js", javascript)
+    app.router.add_post("/offer", offer)
+    return app
+
+
+if __name__ == "__main__":
+    args, ssl_context = get_config()
+    flask_app = create_flask_app()
+    aiohttp_app = create_aiohttp_app()
+
+    web.run_app(aiohttp_app, host=args.host, port=args.port, ssl_context=ssl_context)
