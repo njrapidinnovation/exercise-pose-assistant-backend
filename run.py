@@ -54,6 +54,7 @@ def create_aiohttp_app(app):
 
 if __name__ == "__main__":
     print("server started:")
-    # web_app = create_aiohttp_app(web_app)
-    asyncio.run(main())
-    # web.run_app(web_app, host=args.host, port=args.port, ssl_context=ssl_context)
+    web_app = create_aiohttp_app(web_app)
+    # asyncio.run(main())
+
+    web.run_app(web_app, host=args.host, port=args.port, ssl_context=ssl_context)
