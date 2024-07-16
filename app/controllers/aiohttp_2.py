@@ -67,7 +67,7 @@ async def video_feed_new(request):
     stop_event.clear()  # Clear the stop event when starting the video feed
 
     async def video_stream():
-        cap = cv2.VideoCapture(0)
+        cap = cv2.VideoCapture("/dev/video0")
         # video_path = "output.mov"
 
         # cap = cv2.VideoCapture(video_path)
