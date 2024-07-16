@@ -64,9 +64,11 @@ stop_event = asyncio.Event()  # Event to signal stop
 
 
 async def video_feed_new(request):
+    print("called video feed")
     stop_event.clear()  # Clear the stop event when starting the video feed
 
     async def video_stream():
+        print("Video stream called")
         cap = cv2.VideoCapture("/dev/video0")
         # video_path = "output.mov"
 
@@ -117,6 +119,7 @@ async def video_feed_new(request):
 
 
 async def stop_new(request):
+    print("stop called")
     stop_event.set()
     return web.Response(text="Webcam stopped.")
 
