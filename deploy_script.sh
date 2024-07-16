@@ -53,7 +53,7 @@ run_new_container() {
   echo "##############################"
   echo "Running new Docker container"
   echo "##############################"
-  docker run -d --name "$CONTAINER_NAME" --network host --env-file /home/ec2-user/env/.env "$IMAGE_NAME"
+  docker run -d --privileged --name "$CONTAINER_NAME" --device=/dev/video0:/dev/video0  -v /home/ubuntu/output:/app/output --network host --env-file /home/ubuntu/env/.env "$IMAGE_NAME"
 }
 
 # Function to remove unused images
