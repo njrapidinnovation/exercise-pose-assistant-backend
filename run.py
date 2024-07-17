@@ -8,13 +8,7 @@ from flask_socketio import SocketIO, emit
 from PIL import Image
 
 from app import create_app as flask_create_app
-from app.config.env_vars import (
-    ENV_TYPE,
-    HOST,
-    PORT,
-    SOCKET_URL_LOCAL,
-    SOCKET_URL_SERVER,
-)
+from app.config.env_vars import HOST, PORT, SOCKET_URL
 from app.helpers.webrtc_release import process_frame
 
 flask_app = flask_create_app()
@@ -23,11 +17,6 @@ socketio = SocketIO(flask_app, cors_allowed_origins="*")
 
 @flask_app.route("/video", methods=["GET"])
 def test():
-    if ENV_TYPE == "local":
-        SOCKET_URL = SOCKET_URL_LOCAL
-    else:
-        SOCKET_URL = SOCKET_URL_SERVER
-
     return render_template("socket_index.html", socket_url=SOCKET_URL)
 
 
