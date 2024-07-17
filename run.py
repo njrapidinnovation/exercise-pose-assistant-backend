@@ -1,60 +1,80 @@
-import asyncio
+import base64
+from io import BytesIO
 
-from aiohttp import web
+import cv2
+from av import VideoFrame
+from flask import render_template
+from flask_socketio import SocketIO, emit
+from PIL import Image
 
-from app import create_app as create_flask_app
-from app import webrtc_app
-from app.config.config import get_config
-from app.controllers.aiohttp_2 import (
-    index_new,
-    javascript_new,
-    stop_new,
-    video_feed_new,
+from app import create_app as flask_create_app
+from app.config.env_vars import (
+    ENV_TYPE,
+    HOST,
+    PORT,
+    SOCKET_URL_LOCAL,
+    SOCKET_URL_SERVER,
 )
-from app.controllers.release import index, javascript, offer, on_shutdown
+from app.helpers.webrtc_release import process_frame
 
-args, ssl_context = get_config()
-web_app = webrtc_app()
-flask_app = create_flask_app()
+flask_app = flask_create_app()
+socketio = SocketIO(flask_app, cors_allowed_origins="*")
 
 
-async def main():
-    print("server started: main")
-    args, ssl_context = get_config()
+@flask_app.route("/video", methods=["GET"])
+def test():
+    if ENV_TYPE == "local":
+        SOCKET_URL = SOCKET_URL_LOCAL
+    else:
+        SOCKET_URL = SOCKET_URL_SERVER
 
-    # Setup aiohttp web application
-    web_app.router.add_get("/video", index_new)
-    web_app.router.add_get("/client_2.js", javascript_new)
-    web_app.router.add_get("/video_feed_new", video_feed_new)
-    web_app.router.add_get("/stop_new", stop_new)
+    return render_template("socket_index.html", socket_url=SOCKET_URL)
 
-    # Create aiohttp web runner
-    runner = web.AppRunner(web_app)
-    await runner.setup()
 
-    # Create aiohttp TCP site
-    site = web.TCPSite(runner, args.host, args.port, ssl_context=ssl_context)
-    await site.start()
+@flask_app.route("/", methods=["GET"])
+def index():
+    return "success"
 
+
+class StreamingState:
+    def __init__(self):
+        self.streaming = False
+
+
+streaming_state = StreamingState()
+
+
+@socketio.on("frame")
+def handle_frame(data):
+    if not streaming_state.streaming:
+        return
     try:
-        await asyncio.sleep(3600)  # Serve indefinitely until terminated
-    except KeyboardInterrupt:
-        pass
-    finally:
-        await runner.cleanup()
+
+        image_data = base64.b64decode(data.split(",")[1])
+        image = Image.open(BytesIO(image_data))
+        frame = VideoFrame.from_image(image)
+        processed_frame = process_frame(frame)
+        _, buffer = cv2.imencode(".jpg", processed_frame.to_ndarray(format="bgr24"))
+        processed_image = base64.b64encode(buffer).decode("utf-8")
+        emit("processed_frame", processed_image)
+    except Exception as e:
+        print(f"Error processing frame: {e}")
 
 
-def create_aiohttp_app(app):
-    app.on_shutdown.append(on_shutdown)
-    app.router.add_get("/", index)
-    app.router.add_get("/client.js", javascript)
-    app.router.add_post("/offer", offer)
-    return app
+@socketio.on("start_stream")
+def handle_start_stream():
+    streaming_state.streaming = True
+    print("Streaming started")
+
+
+@socketio.on("stop_stream")
+def handle_stop_stream():
+    streaming_state.streaming = False
+    print("Streaming stopped")
+    return
+    emit("stop_stream")
+    return
 
 
 if __name__ == "__main__":
-    print("server started:")
-    web_app = create_aiohttp_app(web_app)
-    # asyncio.run(main())
-
-    web.run_app(web_app, host=args.host, port=args.port, ssl_context=ssl_context)
+    socketio.run(flask_app, host=HOST, port=PORT, debug=True)
