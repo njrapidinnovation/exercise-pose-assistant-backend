@@ -28,5 +28,4 @@ PORT = int(os.environ["PORT"])
 SECRET_KEY: str = os.environ["SECRET_KEY"]
 
 # get socket url
-SOCKET_URL_LOCAL = f"http://{HOST}:{PORT}"
-SOCKET_URL_SERVER = f"https://{HOST}:{PORT}"
+SOCKET_URL: str = os.environ["SOCKET_URL"]
