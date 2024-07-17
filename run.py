@@ -77,4 +77,6 @@ def handle_stop_stream():
 
 
 if __name__ == "__main__":
-    socketio.run(flask_app, host=HOST, port=PORT, debug=True)
+    socketio.run(
+        flask_app, host=HOST, port=PORT, debug=True, allow_unsafe_werkzeug=True
+    )
