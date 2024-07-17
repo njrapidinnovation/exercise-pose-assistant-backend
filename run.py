@@ -45,10 +45,15 @@ def handle_frame(data):
         print(f"Input data size: {input_size} bytes")
 
         image_data = base64.b64decode(data.split(",")[1])
+        print(f"Input data size: {len(image_data)} bytes")
         image = Image.open(BytesIO(image_data))
+
         frame = VideoFrame.from_image(image)
 
-        frame.pts = int(time.time() * 1000000)
+        # Generate a new timestamp
+        new_timestamp = int(time.time() * 1000000)
+
+        frame.pts = new_timestamp
         frame.time_base = Fraction(1, 1000000)
 
         pre_process_size = sys.getsizeof(frame.to_ndarray())
