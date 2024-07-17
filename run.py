@@ -1,4 +1,7 @@
 import base64
+import sys
+import time
+from fractions import Fraction
 from io import BytesIO
 
 import cv2
@@ -38,13 +41,34 @@ def handle_frame(data):
     if not streaming_state.streaming:
         return
     try:
+        # Measure input size
+        input_size = sys.getsizeof(data)
+        print(f"Input data size: {input_size} bytes")
 
         image_data = base64.b64decode(data.split(",")[1])
         image = Image.open(BytesIO(image_data))
         frame = VideoFrame.from_image(image)
+
+        frame.pts = int(time.time() * 1000000)
+        frame.time_base = Fraction(1, 1000000)
+
+        # Measure size before processing
+        pre_process_size = sys.getsizeof(frame.to_ndarray())
+        print(f"Pre-processed frame size: {pre_process_size} bytes")
+
         processed_frame = process_frame(frame)
+
+        # Measure size after processing
+        post_process_size = sys.getsizeof(processed_frame.to_ndarray())
+        print(f"Post-processed frame size: {post_process_size} bytes")
+
         _, buffer = cv2.imencode(".jpg", processed_frame.to_ndarray(format="bgr24"))
         processed_image = base64.b64encode(buffer).decode("utf-8")
+
+        # Measure output size
+        output_size = sys.getsizeof(processed_image)
+        print(f"Output data size: {output_size} bytes")
+
         emit("processed_frame", processed_image)
     except Exception as e:
         print(f"Error processing frame: {e}")
