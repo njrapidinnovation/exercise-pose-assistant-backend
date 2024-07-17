@@ -42,7 +42,6 @@ def is_point_in_ellipse(point, center, axes):
 
 
 def process_frame(frame):
-    print("processing frame")
     pose_ellipses = PoseEllipses()
     img = frame.to_ndarray(format="bgr24")
 
@@ -152,5 +151,4 @@ def process_frame(frame):
     new_frame = VideoFrame.from_ndarray(image, format="bgr24")
     new_frame.pts = frame.pts
     new_frame.time_base = frame.time_base
-    print("processed frame")
     return new_frame
