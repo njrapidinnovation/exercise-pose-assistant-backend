@@ -15,7 +15,9 @@ from app.config.env_vars import HOST, PORT, SOCKET_URL
 from app.helpers.webrtc_release import process_frame
 
 flask_app = flask_create_app()
-socketio = SocketIO(flask_app, cors_allowed_origins="*")
+socketio = SocketIO(
+    flask_app, cors_allowed_origins="*", max_http_buffer_size=1e8
+)  # 100 MB
 
 
 # @flask_app.route("/video", methods=["GET"])
@@ -61,6 +63,10 @@ def handle_frame(data):
 
         processed_frame = process_frame(frame)
 
+        # Ensure the processed frame has monotonically increasing timestamps
+        processed_frame.pts = frame.pts
+        processed_frame.time_base = frame.time_base
+
         post_process_size = sys.getsizeof(processed_frame.to_ndarray())
         print(f"Post-processed frame size: {post_process_size} bytes")
 
@@ -73,6 +79,51 @@ def handle_frame(data):
         emit("processed_frame", processed_image)
     except Exception as e:
         print(f"Error processing frame: {e}")
+
+
+# @socketio.on("frame")
+# def handle_frame(data):
+#     if not streaming_state.streaming:
+#         return
+
+#     try:
+#         # Decode base64 image data
+#         image_data = base64.b64decode(data.split(",")[1])
+#         image = Image.open(BytesIO(image_data))
+
+#         # Convert PIL image to VideoFrame
+#         frame = VideoFrame.from_image(image)
+
+#         # Generate a new timestamp
+#         new_timestamp = int(time.time() * 1000000)
+#         frame.pts = new_timestamp
+#         frame.time_base = Fraction(1, 1000000)
+
+#         # Pre-process frame
+#         pre_process_size = sys.getsizeof(frame.to_ndarray())
+#         print(f"Pre-processed frame size: {pre_process_size} bytes")
+
+#         # Process the frame
+#         processed_frame = process_frame(frame)
+
+#         # Post-process frame
+#         post_process_size = sys.getsizeof(processed_frame.to_ndarray())
+#         print(f"Post-processed frame size: {post_process_size} bytes")
+
+#         # Encode the processed frame
+#         _, buffer = cv2.imencode(".jpg", processed_frame.to_ndarray(format="bgr24"))
+#         processed_image = base64.b64encode(buffer).decode("utf-8")
+
+#         output_size = sys.getsizeof(processed_image)
+#         print(f"Output data size: {output_size} bytes")
+
+#         # Emit the processed frame
+#         emit("processed_frame", processed_image)
+#     except Exception as e:
+#         print(f"Error processing frame: {e}")
+
+#         # Send error message to client
+#         emit("error", {"message": "Error processing frame"})
 
 
 @socketio.on("start_stream")
