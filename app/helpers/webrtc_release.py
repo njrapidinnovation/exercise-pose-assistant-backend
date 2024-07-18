@@ -149,6 +149,6 @@ def process_frame(frame):
 
     # Rebuild a VideoFrame, preserving timing information
     new_frame = VideoFrame.from_ndarray(image, format="bgr24")
-    new_frame.pts = frame.pts
-    new_frame.time_base = frame.time_base
+    # new_frame.pts = frame.pts
+    # new_frame.time_base = frame.time_base
     return new_frame
