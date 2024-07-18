@@ -29,3 +29,4 @@ SECRET_KEY: str = os.environ["SECRET_KEY"]
 
 # get socket url
 SOCKET_URL: str = os.environ["SOCKET_URL"]
+SOCKET_PORT: int = int(os.environ["SOCKET_PORT"])

@@ -9,6 +9,7 @@ av==12.2.0
 load-dotenv==0.1.0
 Flask-Cors==4.0.1
 Flask-SocketIO==5.3.6
+websockets==12.0
 
 # opencv-python==4.5.3.56
 # mediapipe==0.8.7.3
