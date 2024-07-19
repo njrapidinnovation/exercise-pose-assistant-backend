@@ -17,9 +17,9 @@ mp_drawing = mp.solutions.drawing_utils
 
 class PoseEllipses:
     def __init__(self):
-        self.initialized=False
-        self.center_left=None
-        self.center_right=None
+        self.initialized = False
+        self.center_left = None
+        self.center_right = None
 
 def rotate_point(point, angle, center):
     angle_rad = np.deg2rad(angle)
@@ -30,7 +30,6 @@ def rotate_point(point, angle, center):
     qy = oy + np.sin(angle_rad) * (px - ox) + np.cos(angle_rad) * (py - oy)
     return qx, qy
 
-
 def is_point_in_ellipse(point, center, axes):
     px, py = point
     cx, cy = center
@@ -38,9 +37,8 @@ def is_point_in_ellipse(point, center, axes):
 
     return ((px - cx) ** 2 / a**2 + (py - cy) ** 2 / b**2) <= 1
 
-
 def process_frame(frame):
-    pose_ellipses=PoseEllipses()
+    pose_ellipses = PoseEllipses()
     img = frame.to_ndarray(format="bgr24")
 
     image = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -60,16 +58,16 @@ def process_frame(frame):
         if not pose_ellipses.initialized:
             initial_left_hip_coords = (int(left_hip.x * image_width), int(left_hip.y * image_height))
             initial_right_hip_coords = (int(right_hip.x * image_width), int(right_hip.y * image_height))
-            pose_ellipses.center_left = (initial_left_hip_coords[0] - 8, initial_left_hip_coords[1] - 45)
-            pose_ellipses.center_right = (initial_right_hip_coords[0] + 8, initial_right_hip_coords[1] - 45)
-            pose_ellipses.initialized=True
-            
-        center_left=pose_ellipses.center_left
-        center_right=pose_ellipses.center_right
-        area = (30, 20)
+            pose_ellipses.center_left = (initial_left_hip_coords[0] + 12, initial_left_hip_coords[1] - 30)
+            pose_ellipses.center_right = (initial_right_hip_coords[0] - 12, initial_right_hip_coords[1] - 30)
+            pose_ellipses.initialized = True
+
+        center_left = pose_ellipses.center_left
+        center_right = pose_ellipses.center_right
+        area = (28, 10)
         rotate_left = 120
         rotate_right = 60
-            
+
         cv2.ellipse(image, center_left, area, rotate_left, 0, 360, (255, 0, 0), -1)
         cv2.ellipse(image, center_right, area, rotate_right, 0, 360, (255, 0, 0), -1)
 
