@@ -45,7 +45,7 @@ jobs:
     - name: Execute deploy_script.sh from Bastion Host to Target EC2
       env:
         BASTION_USER: ec2-user
-        TARGET_USER: ec2-user
+        TARGET_USER: ubuntu
         REPO_SLUG: ${{ env.REPO_NAME }}
         COMMIT_HASH: ${{ github.sha }}
         BRANCH: ${{ github.ref_name }}

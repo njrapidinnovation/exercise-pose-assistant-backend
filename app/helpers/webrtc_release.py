@@ -15,11 +15,13 @@ hands = mp_hands.Hands(
 )
 mp_drawing = mp.solutions.drawing_utils
 
+
 class PoseEllipses:
     def __init__(self):
         self.initialized = False
         self.center_left = None
         self.center_right = None
+
 
 def rotate_point(point, angle, center):
     angle_rad = np.deg2rad(angle)
@@ -60,11 +62,13 @@ def process_frame(frame):
             initial_right_hip_coords = (int(right_hip.x * image_width), int(right_hip.y * image_height))
             pose_ellipses.center_left = (initial_left_hip_coords[0] + 12, initial_left_hip_coords[1] - 30)
             pose_ellipses.center_right = (initial_right_hip_coords[0] - 12, initial_right_hip_coords[1] - 30)
+
             pose_ellipses.initialized = True
 
         center_left = pose_ellipses.center_left
         center_right = pose_ellipses.center_right
         area = (28, 10)
+
         rotate_left = 120
         rotate_right = 60
 
@@ -86,7 +90,16 @@ def process_frame(frame):
 
                 for pt_left, pt_right in zip(rotated_points_left, rotated_points_right):
                     if is_point_in_ellipse(pt_right, center_right, area):
-                        cv2.ellipse(image, center_right, area, rotate_right, 0, 360, (0, 255, 0), -1)
+                        cv2.ellipse(
+                            image,
+                            center_right,
+                            area,
+                            rotate_right,
+                            0,
+                            360,
+                            (0, 255, 0),
+                            -1,
+                        )
                         cv2.putText(
                             image,
                             "Hand inside right ellipse",
@@ -98,7 +111,16 @@ def process_frame(frame):
                         )
                         break
                     elif is_point_in_ellipse(pt_left, center_left, area):
-                        cv2.ellipse(image, center_left, area, rotate_left, 0, 360, (0, 255, 0), -1)
+                        cv2.ellipse(
+                            image,
+                            center_left,
+                            area,
+                            rotate_left,
+                            0,
+                            360,
+                            (0, 255, 0),
+                            -1,
+                        )
                         cv2.putText(
                             image,
                             "Hand inside left ellipse",
@@ -115,6 +137,7 @@ def process_frame(frame):
 
     # Rebuild a VideoFrame, preserving timing information
     new_frame = VideoFrame.from_ndarray(image, format="bgr24")
-    new_frame.pts = frame.pts
-    new_frame.time_base = frame.time_base
+    # new_frame.pts = frame.pts
+    # new_frame.time_base = frame.time_base
     return new_frame
+

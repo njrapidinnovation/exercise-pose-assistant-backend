@@ -18,7 +18,15 @@ DEMO_VIDEO_PATH: str = os.path.join(BASE_DIR, "demo-instruct.wav")
 STATIC_FOLDER = "app/static"
 TEMPLATES_FOLDER = "app/templates"
 
+
+# Define environment
+ENV_TYPE = os.environ.get("ENV", "local")
+
 # Define configuration variables
 HOST: str = os.environ["HOST"]
 PORT = int(os.environ["PORT"])
 SECRET_KEY: str = os.environ["SECRET_KEY"]
+
+# get socket url
+SOCKET_URL: str = os.environ["SOCKET_URL"]
+SOCKET_PORT: int = int(os.environ["SOCKET_PORT"])
