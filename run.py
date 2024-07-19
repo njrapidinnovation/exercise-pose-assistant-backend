@@ -74,7 +74,8 @@ class VideoTransformTrack(MediaStreamTrack):
             new_frame.time_base = frame.time_base
             return new_frame
         elif self.transform == "release-zone":
-            return process_frame(frame)
+            frame=cv2.flip(frame,1)
+            return process_frame()
         else:
             return frame
 
