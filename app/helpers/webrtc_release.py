@@ -21,7 +21,7 @@ class PoseEllipses:
         self.initialized = False
         self.center_left = None
         self.center_right = None
-
+pose_ellipses = PoseEllipses()
 def rotate_point(point, angle, center):
     angle_rad = np.deg2rad(angle)
     ox, oy = center
@@ -48,9 +48,8 @@ def calculate_distance(left_point, right_point,image_width,image_height):
     return np.linalg.norm(point1 - point2)
 
 def process_frame(frame):
-    pose_ellipses = PoseEllipses()
-    img = frame
-
+    
+    img = frame.to_ndarray(format='bgr24')
     image = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     image.flags.writeable = False
     results = pose.process(image)
@@ -136,3 +135,5 @@ def process_frame(frame):
     new_frame.pts = frame.pts
     new_frame.time_base = frame.time_base
     return new_frame
+
+
