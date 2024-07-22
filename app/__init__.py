@@ -10,9 +10,3 @@ def create_app():
     CORS(app)  # Allow CORS for all domains.
 
     return app
-
-
-# def webrtc_app():
-
-#     web_app = web.Application()
-#     return web_app
