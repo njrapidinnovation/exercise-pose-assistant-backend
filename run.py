@@ -12,7 +12,7 @@ from av import VideoFrame
 from PIL import Image
 
 from app.config.env_vars import HOST, SOCKET_PORT
-from app.helpers.webrtc_release import process_frame
+from app.helpers.pose_feedback import process_frame
 
 streaming_state = {"streaming": False}
 
@@ -38,7 +38,12 @@ async def handle_frame(websocket, path):
                 new_timestamp = int(time.time() * 1000000)
                 frame.pts = new_timestamp
                 frame.time_base = Fraction(1, 1000000)
-                processed_frame = process_frame(frame)
+
+                exercise_start_index = data.get("exercise_start_index")
+                current_stage = data.get("current_stage")
+
+                processed_frame, current_stage, feedback = process_frame(frame, exercise_start_index, current_stage)
+                
                 # processed_frame = frame
                 _, buffer = cv2.imencode(
                     ".jpg", processed_frame.to_ndarray(format="bgr24")
@@ -46,7 +51,12 @@ async def handle_frame(websocket, path):
                 processed_image = base64.b64encode(buffer).decode("utf-8")
 
                 await websocket.send(
-                    json.dumps({"type": "processed_frame", "data": processed_image})
+                    json.dumps({
+                        "type": "processed_frame",
+                        "data": processed_image,
+                        "current_stage": current_stage,
+                        "feedback": feedback
+                    })
                 )
             except Exception as e:
                 print(f"Error processing frame: {str(e)}")
@@ -59,12 +69,6 @@ async def handle_frame(websocket, path):
                         }
                     )
                 )
-
-
-# async def main():
-#     server = await websockets.serve(handle_frame, "localhost", 8765)
-#     print("WebSocket server started on ws://localhost:8765")
-#     await server.wait_closed()
 
 
 async def main():
