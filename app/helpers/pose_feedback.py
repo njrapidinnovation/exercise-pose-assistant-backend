@@ -142,33 +142,33 @@ all_stages = {
             {
                 "name": "head_rotation_right",
                 "check_function": lambda landmarks: calculate_head_rotation(landmarks) < 75,
-                "feedback": "Move your head to the right.",
+                "feedback": "Rotate your head to the right shoulder.",
                 "next_stage": "head_rotation_right_to_centre",
-                "success_feedback": "Move your head to the centre.",
+                "success_feedback": "Good job! Now rotate your head back to the center.",
                 "direction": "right"
             },
             {
                 "name": "head_rotation_right_to_centre",
                 "check_function": lambda landmarks: 80 < calculate_head_rotation(landmarks) < 95,
-                "feedback": "Move your head to the centre.",
+                "feedback": "Return your head to the center position.",
                 "next_stage": "head_rotation_left",
-                "success_feedback": "Move your head to the left.",
+                "success_feedback": "Well done! Now rotate your head to the left shoulder.",
                 "direction": "left"
             },
             {
                 "name": "head_rotation_left",
                 "check_function": lambda landmarks: calculate_head_rotation(landmarks) >= 110,
-                "feedback": "Move your head to the left.",
+                "feedback": "Rotate your head to the left shoulder.",
                 "next_stage": "head_rotation_left_to_centre",
-                "success_feedback": "Move your head to the centre.",
+                "success_feedback": "Excellent! Now return your head to the center.",
                 "direction": "left"
             },
             {
                 "name": "head_rotation_left_to_centre",
                 "check_function": lambda landmarks: 80 < calculate_head_rotation(landmarks) < 95,
-                "feedback": "Move your head to the centre.",
+                "feedback": "Return your head to the center position.",
                 "next_stage": None,
-                "success_feedback": "Exercise Complete",
+                "success_feedback": "Great! You've completed the head rotation exercise.",
                 "direction": "right"
             }
         ],
@@ -189,33 +189,33 @@ all_stages = {
             {
                 "name": "head_lean_right",
                 "check_function": lambda landmarks: calculate_head_lean(landmarks) < 70,
-                "feedback": "Lean your head to the right.",
+                "feedback": "Lean your head to the right shoulder.",
                 "next_stage": "head_lean_centre_from_right",
-                "success_feedback": "Move your head to the centre.",
+                "success_feedback": "Great! Now return your head to the center.",
                 "direction": "right"
             },
             {
                 "name": "head_lean_centre_from_right",
                 "check_function": lambda landmarks: 80 < calculate_head_lean(landmarks) < 100,
-                "feedback": "Move your head to the centre.",
+                "feedback": "Bring your head back to the center position.",
                 "next_stage": "head_lean_left",
-                "success_feedback": "Lean your head to the left.",
+                "success_feedback": "Well done! Now lean your head to the left shoulder.",
                 "direction": "left"
             },
             {
                 "name": "head_lean_left",
                 "check_function": lambda landmarks: calculate_head_lean(landmarks) > 110,
-                "feedback": "Lean your head to the left.",
+                "feedback": "Lean your head to the left shoulder.",
                 "next_stage": "head_lean_centre_from_left",
-                "success_feedback": "Move your head to the centre.",
+                "success_feedback": "Excellent! Now return your head to the center.",
                 "direction": "left"
             },
             {
                 "name": "head_lean_centre_from_left",
                 "check_function": lambda landmarks: 70 < calculate_head_lean(landmarks) < 100,
-                "feedback": "Move your head to the centre.",
+                "feedback": "Bring your head back to the center position.",
                 "next_stage": None,
-                "success_feedback": "Exercise Complete",
+                "success_feedback": "Great job! You've completed the head leaning exercise.",
                 "direction": "right"
             }
         ],
@@ -225,6 +225,7 @@ all_stages = {
         }
     },
 }
+
 
 
 def process_frame(frame, exercise_start_index, current_stage):
@@ -251,7 +252,7 @@ def process_frame(frame, exercise_start_index, current_stage):
             image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
         landmarks = results.pose_landmarks.landmark
 
-        rotation_angle = calculate_head_rotation(landmarks)
+        # rotation_angle = calculate_head_rotation(landmarks)
 
         for stage in current_exercise_stages:
             if stage["name"] == current_stage:
@@ -263,19 +264,19 @@ def process_frame(frame, exercise_start_index, current_stage):
                     feedback = stage["feedback"]
                     feedback = f"{feedback}"
 
-                # Create and display a rotating 3D arrow image if required
-                if "direction" in stage:
-                    neck_position = get_neck_position(image=image)
-                    if neck_position:
-                        rotation_arrow = create_3d_rotation_arrow(
-                            image, neck_position, stage["direction"], rotation_angle)
-                        image = cv2.addWeighted(
-                            image, 1, rotation_arrow, 0.5, 0)
-                break
+                # # Create and display a rotating 3D arrow image if required
+                # if "direction" in stage:
+                #     neck_position = get_neck_position(image=image)
+                #     if neck_position:
+                #         rotation_arrow = create_3d_rotation_arrow(
+                #             image, neck_position, stage["direction"], rotation_angle)
+                #         image = cv2.addWeighted(
+                #             image, 1, rotation_arrow, 0.5, 0)
+                # break
 
-        # Display feedback on the image
-        cv2.putText(image, feedback, (10, 70),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 0), 2, cv2.LINE_AA)
+        # # Display feedback on the image
+        # cv2.putText(image, feedback, (10, 70),
+        #             cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 0), 2, cv2.LINE_AA)
 
     # Rebuild a VideoFrame, preserving timing information
     new_frame = VideoFrame.from_ndarray(image, format="bgr24")
